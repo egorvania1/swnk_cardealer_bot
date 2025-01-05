@@ -1,6 +1,11 @@
+import os
+from dotenv import load_dotenv
+
 import logging
 from telegram import ForceReply, Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+
+load_dotenv()
 
 # Enable logging
 logging.basicConfig(
@@ -71,7 +76,7 @@ async def dealers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 def main() -> None:
     """Start the bot."""
     # Create the Application and pass it your bot's token.
-    application = Application.builder().token("7385650696:AAFXAkQS4iAjHYz45zgJrIvW4BGRplq3nB0").build()
+    application = Application.builder().token(os.getenv("API_KEY")).build()
 
     # Help commands
     application.add_handler(CommandHandler("start", start))
