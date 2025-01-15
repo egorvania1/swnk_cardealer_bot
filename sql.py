@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 
 import psycopg2
+from psycopg2 import sql
 
 load_dotenv()
 
@@ -16,7 +17,11 @@ def createdb(): # Создание новой базы данных
     conn.autocommit = True
     with conn.cursor() as cur:
         try:
-            cur.execute("CREATE DATABASE tgdb")
+            query = "CREATE DATABASE {} ;"
+            dbname = os.getenv("DATABASE_NAME")
+            cur.execute(sql.SQL(query).format(
+                sql.Identifier(dbname)
+                ))
         except psycopg2.errors.DuplicateDatabase as e:
             print("Database already exists")
             print(e)
@@ -170,6 +175,8 @@ def fill_tables(conn): # Заполнение таблиц
                 (1, 1, 1, 1, 'ул. Карпинского 45', 1)
         ''')
         conn.commit()
+        
+
 
 def main():
     removedb()
