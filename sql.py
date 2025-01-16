@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 
 from template import create_tables, fill_tables
 from show_tables import show_workers, show_cars, show_shops, show_orders
+from insert_tables import insert_workers, insert_cars, insert_shops, insert_orders
 
 import psycopg2
 from psycopg2 import sql
@@ -48,8 +49,8 @@ def removedb(): # Удаление базы данных
     conn.close()
 
 def main():
-    removedb()
-    createdb()
+    #removedb()
+    #createdb()
     
     conn = psycopg2.connect(
     dbname=os.getenv("DATABASE_NAME"),
@@ -58,12 +59,14 @@ def main():
     host=os.getenv("DATABASE_IP"),
     port=os.getenv("DATABASE_PORT")
     )
-    create_tables(conn)
-    fill_tables(conn)
+    #create_tables(conn)
+    #fill_tables(conn)
+    #show_workers(conn)
+    #show_cars(conn)
+    #show_shops(conn)
+    #show_orders(conn)
+    insert_workers(conn)
     show_workers(conn)
-    show_cars(conn)
-    show_shops(conn)
-    show_orders(conn)
     conn.close()
 
 if __name__ == "__main__":
