@@ -108,7 +108,7 @@ def fill_tables(conn): # Заполнение таблиц
         cur.execute('''
                 INSERT INTO cars VALUES
                 (1, 'Mazda', 'Super', 2020, 'White', 'Matte', 'Sedan', 1000000),
-                (2, 'VAZ', '4х4', 2018, 'Brown', 'Metalic', 'Pickup', 1200000)
+                (2, 'VAZ', '4x4', 2018, 'Brown', 'Metalic', 'Pickup', 1200000)
         ''')
         #Должности
         cur.execute('''
