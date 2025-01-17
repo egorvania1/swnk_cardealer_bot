@@ -114,11 +114,20 @@ async def insert_workers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         info = context.user_data["info"]
         text = update.message.text
         logger.info("Got text and info: %s, %s", text, info)
-        if (info in ints) and (not text.isdigit()):
-            await update.message.reply_text("Должно быть число!")
-            await update.message.reply_text(f"Введите {info}")
-            return WORKERS
-        
+        if (info in ints):
+            if (not text.isdigit()):
+                await update.message.reply_text("Должно быть число!")
+                await update.message.reply_text(f"Введите {info}")
+                return WORKERS
+            elif (int(text) > 2147483647):
+                await update.message.reply_text("Слишком большое число!")
+                await update.message.reply_text(f"Введите {info}")
+                return WORKERS
+        else:
+            if len(text) > 100:
+                await update.message.reply_text("Слишком длинная строка!")
+                await update.message.reply_text(f"Введите {info}")
+                return WORKERS
         context.user_data[info] = text
     for i in ["ФИО", "пропуски", "должность", "опыт",]:
         if i not in context.user_data:
@@ -139,7 +148,7 @@ async def insert_workers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             if "зарплату" not in context.user_data:
                 await update.message.reply_text("Неизвестная должность!")
                 context.user_data["info"] = "зарплату"
-                await update.message.reply_text(f"Введите зарплату")
+                await update.message.reply_text(f"Введите зарплату для новой должности: ")
                 cur.execute("RELEASE SAVEPOINT working")
                 return WORKERS
             cur.execute("ROLLBACK TO SAVEPOINT working")
@@ -147,6 +156,7 @@ async def insert_workers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             cur.execute("INSERT INTO positions VALUES (%s, %s, %s)", (position, experience, pay))
             cur.execute("INSERT INTO workers VALUES (DEFAULT, %s, %s, %s, %s)", (fio, position, experience, skips))
             del context.user_data["зарплату"]
+            
         conn.commit()
     del context.user_data["ФИО"]
     del context.user_data["должность"]
