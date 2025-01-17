@@ -62,6 +62,7 @@ def main():
     )
     conn.set_client_encoding('UTF8')
     create_tables(conn)
+    fill_tables(conn)
     conn.close()
 
 if __name__ == "__main__":
