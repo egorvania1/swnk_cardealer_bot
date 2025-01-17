@@ -2,8 +2,6 @@ import os
 from dotenv import load_dotenv
 
 from template import create_tables, fill_tables
-from show_tables import show_workers, show_cars, show_shops, show_orders
-from insert_tables import insert_workers, insert_cars, insert_shops, insert_orders
 
 import psycopg2
 from psycopg2 import sql
