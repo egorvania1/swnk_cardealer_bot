@@ -101,57 +101,57 @@ def fill_tables(conn): # Заполнение таблиц
         #Автосалоны
         cur.execute('''
                 INSERT INTO shops VALUES
-                (DEFAULT, 'Патриот', 'ул. Букирева 23', 'Томск', 4),
-                (DEFAULT, 'Даффавто', 'ул. Одоевского 42', 'Пермь', 3)
+                (DEFAULT, 'Patriot', 'Bukireva St. 23', 'Tomsk', 4),
+                (DEFAULT, 'Daffauto', 'Odoevskogo 42', 'Perm', 3)
         ''')
         #Автомобили
         cur.execute('''
                 INSERT INTO cars VALUES
-                (1, 'Mazda', 'Super', 2020, 'Белый', 'Глянцевый', 'Седан', 1000000),
-                (2, 'УВАЗ', '4х4', 2018, 'Коричневый', 'Металик', 'Пикап', 1200000)
+                (1, 'Mazda', 'Super', 2020, 'White', 'Matte', 'Sedan', 1000000),
+                (2, 'УВАЗ', '4х4', 2018, 'Brown', 'Metalic', 'Pickup', 1200000)
         ''')
         #Должности
         cur.execute('''
                 INSERT INTO positions VALUES
-                ('Менеджер', 2, 30000),
-                ('Директор', 7, 100000),
-                ('Менеджер', 1, 15000),
-                ('Директор', 5, 80000)
+                ('Manager', 2, 30000),
+                ('Director', 7, 100000),
+                ('Manager', 1, 15000),
+                ('Director', 5, 80000)
         ''')
         #Сотрудники
         cur.execute('''
                 INSERT INTO workers VALUES
-                (DEFAULT, 'Вяткин Данил Андреевич', 'Менеджер', 2, 1),
-                (DEFAULT, 'Палицин Александр Владимирович', 'Директор', 7, 6)
+                (DEFAULT, 'Vyatkin Danil Andreevich', 'Manager', 2, 1),
+                (DEFAULT, 'Palichin Alexander Vladimirovich', 'Директор', 7, 6)
         ''')
         #Поставщики
         cur.execute('''
                 INSERT INTO dealers VALUES
-                (DEFAULT, 'Masta cars', 'США', 'Нью-Йорк', 'Нью-Йорк', 'Бокстрит 35'),
-                (DEFAULT, 'Российские машины', 'Россия', 'Челябинская область', 'Челябинск', 'ул. Ардонского')
+                (DEFAULT, 'Masta cars', 'USA', 'New York', 'New York', 'Boxstreet 35'),
+                (DEFAULT, 'Russian cars', 'Russia', 'Chelyabinskaya oblast', 'Chelyabinsk', 'Ardonskogo St.')
         ''')
         #Покупатели
         cur.execute('''
                 INSERT INTO buyers VALUES
-                (DEFAULT, 'Жданов Андрей Игнатин', '7(1086)518-99-66'),
-                (DEFAULT, 'Булкин Федор Федорович', '7(70)171-38-76')
+                (DEFAULT, 'Zshdanov Andrew Ignatin', '7(1086)518-99-66'),
+                (DEFAULT, 'Bulkin Fedor Fedorovich', '7(70)171-38-76')
         ''')
         #Скидочные карты
         cur.execute('''
                 INSERT INTO discount_cards VALUES
-                (1, 1, 'Золотая'),
-                (2, 1, 'Нету')
+                (1, 1, 'Gold'),
+                (2, 1, 'None')
         ''')
         #Итоговые цены
         cur.execute('''
                 INSERT INTO total_prices VALUES
-                (1, 1, 1, 'ул. Карпинского 45', 1, 1230000),
-                (1, 1, 2, 'ул. Балонского 2', 1, 1600000)
+                (1, 1, 1, 'Karpinskogo St. 45', 1, 1230000),
+                (1, 1, 2, 'Balonskogo St. 2', 1, 1600000)
         ''')
         #Покупки
         cur.execute('''
                 INSERT INTO keys_table VALUES
-                (1, 1, 1, 1, 'ул. Карпинского 45', 1),
-                (1, 1, 1, 2, 'ул. Балонского 2', 1)
+                (1, 1, 1, 1, 'Karpinskogo St. 45', 1),
+                (1, 1, 1, 2, 'Balonskogo St. 2', 1)
         ''')
         conn.commit()
