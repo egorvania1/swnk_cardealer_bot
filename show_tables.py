@@ -1,6 +1,4 @@
 import psycopg2
-import psycopg2.extensions
-
 from dbmanage import connectdb
 
 def show_workers():

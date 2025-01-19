@@ -1,11 +1,8 @@
 import os
 from dotenv import load_dotenv
 
-import psycopg2
-
 from show_tables import show_workers, show_cars, show_shops, show_orders
-#from insert_tables import insert_workers, insert_cars, insert_shops, insert_orders
-from dbmanage import connectdb
+from insert_tables import insert_workers, insert_cars, insert_shops, insert_orders
 
 import logging
 from telegram import ForceReply, Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
@@ -17,7 +14,8 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-load_dotenv()
+
+load_dotenv() #Загрузить приватную инфу
 
 # Enable logging
 logging.basicConfig(
@@ -28,8 +26,8 @@ logging.basicConfig(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
-WORKERS, BUYERS, DEALERS, CARS, SHOPS, ORDERS, CHOICE, TYPING_REPLY = range(8)
-ints = ["опыт", "пропуски", "зарплату"]
+# Все для выбора вывода, ввода, удаления и изменения
+WORKERS, CARS, SHOPS, ORDERS, CHOICE = range(5)
 
 # Define a few command handlers. These usually take the two arguments update and
 # context.
@@ -65,7 +63,7 @@ async def view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     return CHOICE
     
-async def select_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def selected_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     logger.info("Selected view: %s", update.message.text)
     result = "Ошибка"
     match update.message.text:
@@ -89,6 +87,45 @@ async def select_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         await update.message.reply_text(result)
     return ConversationHandler.END
 
+async def insert(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    reply_keyboard = [["Сотрудники", "Автомобили", "Автосалоны", "Заказы"]]
+    await update.message.reply_text(
+        "В какую таблицу вы хотите добавить данные?\n"
+        "/cancel для отмены",
+        reply_markup=ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True, input_field_placeholder="Выбор"
+        ),
+    )
+    return CHOICE
+    
+async def selected_insert(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    logger.info("Selected insert: %s", update.message.text)
+    result = "Ошибка"
+    match update.message.text:
+        case "Сотрудники":
+            result = show_workers()
+            await update.message.reply_text("Введите: ФИО, Пропуски, Должность, Опыт, Зарплата")
+            return WORKERS
+        case "Автомобили":
+            result = show_cars()
+            await update.message.reply_text("Введите: VIN, Марка, Название, Год, Цвет, Покраска, Кузов, Цена")
+            return CARS
+        case "Автосалоны":
+            result = show_shops()
+            await update.message.reply_text("Введите: ИД, Название, Улица, Город, Рейтинг")
+            return SHOPS
+        case "Заказы":
+            result = show_orders()
+            await update.message.reply_text("Введите: ИД магазина, ИД сотрудника, VIN, ИД покупателя, ИД поставщика")
+            return ORDERS
+    logger.info("Printing to %s: %s", update.message.from_user.first_name, result)
+    if type(result) == list:
+        for x in result:
+            await update.message.reply_text(x)
+    else:
+        await update.message.reply_text(result, reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
+
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends the conversation."""
     user = update.message.from_user
@@ -98,73 +135,6 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     return ConversationHandler.END
 
-async def insert(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    #reply_keyboard = [["Сотрудники", "Автомобили", "Автосалоны", "Заказы"]]
-    reply_keyboard = [["Сотрудники"]]
-    await update.message.reply_text(
-        "В какую таблицу вставить данные?\n",
-        reply_markup=ReplyKeyboardMarkup(
-            reply_keyboard, one_time_keyboard=True, input_field_placeholder="Выбор"
-        ),
-    )
-    return CHOICE
-
-async def insert_workers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if "info" in context.user_data:
-        info = context.user_data["info"]
-        text = update.message.text
-        logger.info("Got text and info: %s, %s", text, info)
-        if (info in ints):
-            if (not text.isdigit()):
-                await update.message.reply_text("Должно быть число!")
-                await update.message.reply_text(f"Введите {info}")
-                return WORKERS
-            elif (int(text) > 2147483647):
-                await update.message.reply_text("Слишком большое число!")
-                await update.message.reply_text(f"Введите {info}")
-                return WORKERS
-        else:
-            if len(text) > 100:
-                await update.message.reply_text("Слишком длинная строка!")
-                await update.message.reply_text(f"Введите {info}")
-                return WORKERS
-        context.user_data[info] = text
-    for i in ["ФИО", "пропуски", "должность", "опыт",]:
-        if i not in context.user_data:
-            context.user_data["info"] = i
-            await update.message.reply_text(f"Введите {i}")
-            return WORKERS
-    fio = context.user_data["ФИО"]
-    position = context.user_data["должность"]
-    experience = int(context.user_data["опыт"])
-    skips = int(context.user_data["пропуски"])
-    conn = connectdb()
-    with conn.cursor() as cur:
-        try:
-            cur.execute("SAVEPOINT working")
-            cur.execute("INSERT INTO workers VALUES (DEFAULT, %s, %s, %s, %s)", (fio, position, experience, skips))
-            cur.execute("RELEASE SAVEPOINT working")
-        except psycopg2.errors.ForeignKeyViolation as e:
-            if "зарплату" not in context.user_data:
-                await update.message.reply_text("Неизвестная должность!")
-                context.user_data["info"] = "зарплату"
-                await update.message.reply_text(f"Введите зарплату для новой должности: ")
-                cur.execute("RELEASE SAVEPOINT working")
-                return WORKERS
-            cur.execute("ROLLBACK TO SAVEPOINT working")
-            pay = int(context.user_data["зарплату"])
-            cur.execute("INSERT INTO positions VALUES (%s, %s, %s)", (position, experience, pay))
-            cur.execute("INSERT INTO workers VALUES (DEFAULT, %s, %s, %s, %s)", (fio, position, experience, skips))
-            del context.user_data["зарплату"]
-            
-        conn.commit()
-    del context.user_data["ФИО"]
-    del context.user_data["должность"]
-    del context.user_data["опыт"]
-    del context.user_data["пропуски"]
-    del context.user_data["info"]
-    await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
-    return ConversationHandler.END
 
 def main() -> None:
     """Start the bot."""
@@ -174,16 +144,19 @@ def main() -> None:
     view_handler = ConversationHandler(
         entry_points=[CommandHandler("view", view)],
         states={
-            CHOICE: [MessageHandler(filters.Regex("^(Сотрудники|Автомобили|Автосалоны|Заказы)$"), select_view)],
+            CHOICE: [MessageHandler(filters.Regex("^(Сотрудники|Автомобили|Автосалоны|Заказы)$"), selected_view)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
     
     insert_handler = ConversationHandler(
-        entry_points=[CommandHandler("insert", insert_workers)],
+        entry_points=[CommandHandler("insert", insert)],
         states={
-            #CHOICE: [MessageHandler(filters.Regex("^(Сотрудники|Автомобили|Автосалоны|Заказы)$"), select_insert)],
+            CHOICE: [MessageHandler(filters.Regex("^(Сотрудники|Автомобили|Автосалоны|Заказы)$"), selected_insert)],
             WORKERS: [MessageHandler(filters.TEXT, insert_workers)],
+            CARS: [MessageHandler(filters.TEXT, insert_cars)],
+            SHOPS: [MessageHandler(filters.TEXT, insert_shops)],
+            ORDERS: [MessageHandler(filters.TEXT, insert_workers)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
