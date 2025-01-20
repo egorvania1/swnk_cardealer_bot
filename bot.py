@@ -41,7 +41,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     await update.message.reply_html(
         rf"Hi {user.mention_html()}!"
-        "\n/start, /view, /insert",
+        "\n/start, /view, /insert, /remove, /update",
         reply_markup=ForceReply(selective=True),
     )
 
@@ -50,7 +50,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await update.message.reply_text(
         "/start - команда первого запуска\n"
         "/view - обзор некоторых баз данных\n"
-        "/insert - вставить информацию о новых сотрудниках\n"
+        "/insert - вставить информацию\n"
+        "/remove - удалить информацию\n"
+        "/update - обновить информацию\n"
         )
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
