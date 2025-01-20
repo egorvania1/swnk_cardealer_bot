@@ -75,7 +75,7 @@ async def selected_remove(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await update.message.reply_text("Введите ИД автосалона: ")
             return SHOPS
         case "Поставщики":
-            await update.message.reply_text("Введите название поставщика: ")
+            await update.message.reply_text("Введите ИД поставщика: ")
             return DEALERS
         case "Заказы":
             await update.message.reply_text("Введите что-нибудь: ")
@@ -83,7 +83,19 @@ async def selected_remove(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return ConversationHandler.END
 
 async def remove_buyers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("PLACEHOLDER")
+    try:
+        inputId = int(update.message.text)
+        logger.info("Got from user: %s ", inputId)
+    except Exception as error:
+        logger.info(error)
+        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        return BUYERS
+    conn = connectdb()
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM buyers WHERE buyerId = (%s)", (inputId,))
+        conn.commit()
+    conn.close()
+    await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 async def remove_workers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -103,21 +115,71 @@ async def remove_workers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     return ConversationHandler.END
 
 async def remove_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("PLACEHOLDER")
+    text = update.message.text
+    try:
+        position, experience = text.split(", ")
+        logger.info("Got from user: %s ", inputId)
+        position = int(position)
+    except Exception as error:
+        logger.info(error)
+        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        return JOBS
+    conn = connectdb()
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM jobs WHERE position = (%s) AND experience = (%s)", (position, experience))
+        conn.commit()
+    conn.close()
+    await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 async def remove_cars(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("PLACEHOLDER")
+    try:
+        inputId = int(update.message.text)
+        logger.info("Got from user: %s ", inputId)
+    except Exception as error:
+        logger.info(error)
+        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        return CARS
+    conn = connectdb()
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM cars WHERE vin = (%s)", (inputId,))
+        conn.commit()
+    conn.close()
+    await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 async def remove_shops(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("PLACEHOLDER")
+    try:
+        inputId = int(update.message.text)
+        logger.info("Got from user: %s ", inputId)
+    except Exception as error:
+        logger.info(error)
+        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        return SHOPS
+    conn = connectdb()
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM shops WHERE shopId = (%s)", (inputId,))
+        conn.commit()
+    conn.close()
+    await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 async def remove_dealers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("PLACEHOLDER")
+    try:
+        inputId = int(update.message.text)
+        logger.info("Got from user: %s ", inputId)
+    except Exception as error:
+        logger.info(error)
+        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        return SHOPS
+    conn = connectdb()
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM dealers WHERE dealerId = (%s)", (inputId,))
+        conn.commit()
+    conn.close()
+    await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 async def remove_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("PLACEHOLDER")
+    await update.message.reply_text("Класс, а теперь надо доделать это.")
     return ConversationHandler.END
