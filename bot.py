@@ -1,9 +1,6 @@
 import os
 from dotenv import load_dotenv
 
-from show_tables import view, selected_view, show_workers, show_cars, show_shops, show_orders, show_jobs, show_dealers, show_buyers
-from insert_tables import insert, selected_insert, insert_workers, insert_cars, insert_shops, insert_orders, insert_jobs, insert_dealers, insert_buyers
-
 import logging
 from telegram import ForceReply, Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
@@ -14,6 +11,14 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+
+from dbmanage import connectdb
+
+from show_tables import view, selected_view, show_workers, show_cars, show_shops, show_orders, show_jobs, show_dealers, show_buyers
+from insert_tables import insert, selected_insert, insert_workers, insert_cars, insert_shops, insert_orders, insert_jobs, insert_dealers, insert_buyers
+from remove_tables import remove, selected_remove, remove_workers, remove_cars, remove_shops, remove_orders, remove_jobs, remove_dealers, remove_buyers
+
+
 
 load_dotenv() #Загрузить приватную инфу
 
@@ -27,7 +32,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Все для выбора вывода, ввода, удаления и изменения
-WORKERS, JOBS, CARS, SHOPS, DEALERS, ORDERS, BUYERS, CHOICE = range(8)
+BUYERS, WORKERS, JOBS, CARS, SHOPS, DEALERS, ORDERS, CHOICE = range(8)
 
 # Define a few command handlers. These usually take the two arguments update and
 # context.
@@ -70,7 +75,7 @@ def main() -> None:
     view_handler = ConversationHandler(
         entry_points=[CommandHandler("view", view)],
         states={
-            CHOICE: [MessageHandler(filters.Regex("^(Сотрудники|Автомобили|Автосалоны|Заказы|Должности|Поставщики|Покупатели)$"), selected_view)],
+            CHOICE: [MessageHandler(filters.Regex("^(Покупатели|Сотрудники|Должности|Автомобили|Автосалоны|Поставщики|Заказы)$"), selected_view)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
@@ -78,21 +83,38 @@ def main() -> None:
     insert_handler = ConversationHandler(
         entry_points=[CommandHandler("insert", insert)],
         states={
-            CHOICE: [MessageHandler(filters.Regex("^(Сотрудники|Автомобили|Автосалоны|Заказы|Должности|Поставщики|Покупатели)$"), selected_insert)],
+            CHOICE: [MessageHandler(filters.Regex("^(Покупатели|Сотрудники|Должности|Автомобили|Автосалоны|Поставщики|Заказы)$"), selected_insert)],
+            BUYERS: [MessageHandler(filters.TEXT, insert_buyers)],
             WORKERS: [MessageHandler(filters.TEXT, insert_workers)],
+            JOBS: [MessageHandler(filters.TEXT, insert_jobs)],
             CARS: [MessageHandler(filters.TEXT, insert_cars)],
             SHOPS: [MessageHandler(filters.TEXT, insert_shops)],
-            ORDERS: [MessageHandler(filters.TEXT, insert_orders)],
-            JOBS: [MessageHandler(filters.TEXT, insert_jobs)],
             DEALERS: [MessageHandler(filters.TEXT, insert_dealers)],
-            BUYERS: [MessageHandler(filters.TEXT, insert_buyers)],
+            ORDERS: [MessageHandler(filters.TEXT, insert_orders)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
     
+    remove_handler = ConversationHandler(
+        entry_points=[CommandHandler("remove", remove)],
+        states={
+            CHOICE: [MessageHandler(filters.Regex("^(Покупатели|Сотрудники|Должности|Автомобили|Автосалоны|Поставщики|Заказы)$"), selected_remove)],
+            BUYERS: [MessageHandler(filters.TEXT, remove_buyers)],
+            WORKERS: [MessageHandler(filters.TEXT, remove_workers)],
+            JOBS: [MessageHandler(filters.TEXT, remove_jobs)],
+            CARS: [MessageHandler(filters.TEXT, remove_cars)],
+            SHOPS: [MessageHandler(filters.TEXT, remove_shops)],
+            ORDERS: [MessageHandler(filters.TEXT, remove_orders)],
+            DEALERS: [MessageHandler(filters.TEXT, remove_dealers)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+    
+    
     # Conversation handlers
     application.add_handler(view_handler)
     application.add_handler(insert_handler)
+    application.add_handler(remove_handler)
     
     # Start command
     application.add_handler(CommandHandler("start", start))

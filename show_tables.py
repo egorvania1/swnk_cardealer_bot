@@ -1,12 +1,16 @@
 import psycopg2
-from dbmanage import connectdb
 
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ContextTypes, ConversationHandler
+from telegram.constants import ParseMode
 import logging
 
+from tabulate import tabulate
+
+from dbmanage import connectdb
+
 # Все для выбора вывода, ввода, удаления и изменения
-WORKERS, JOBS, CARS, SHOPS, DEALERS, ORDERS, BUYERS, CHOICE = range(8)
+BUYERS, WORKERS, JOBS, CARS, SHOPS, DEALERS, ORDERS, CHOICE = range(8)
 
 logger = logging.getLogger(__name__)
 
@@ -23,35 +27,33 @@ async def view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     
 async def selected_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     logger.info("Selected view: %s", update.message.text)
-    result = "Ошибка"
+    result="Ошибка"
+    headers=["Ошибка"]
     match update.message.text:
         case "Покупатели":
             result = show_buyers()
-            await update.message.reply_text("ИД, ФИО, Телефон")
+            headers = ["ИД", "ФИО", "Телефон"]
         case "Сотрудники":
             result = show_workers()
-            await update.message.reply_text("ИД, ФИО, Пропуски, Должность, Опыт, Зарплата")
-        case "Автомобили":
-            result = show_cars()
-            await update.message.reply_text("VIN, Марка, Название, Год, Цвет, Покраска, Кузов, Цена")
-        case "Автосалоны":
-            result = show_shops()
-            await update.message.reply_text("ИД, Название, Улица, Город, Рейтинг")
-        case "Заказы":
-            result = show_orders()
-            await update.message.reply_text("Магазин, Сотрудник, Авто, Покупатель, Поставщик")
+            headers = ["ИД", "ФИО", "Пропуски", "Должность", "Опыт", "Зарплата"]
         case "Должности":
             result = show_jobs()
-            await update.message.reply_text("Должность, Опыт, Зарплата")
+            headers = ["Должность", "Опыт", "Зарплата"]
+        case "Автомобили":
+            result = show_cars()
+            headers = ["VIN", "Марка", "Название", "Год", "Цвет", "Покраска", "Кузов", "Цена"]
+        case "Автосалоны":
+            result = show_shops()
+            headers = ["ИД", "Название", "Улица", "Город", "Рейтинг"]
         case "Поставщики":
             result = show_dealers()
-            await update.message.reply_text("ИД, Название, Страна, Регион, Город, Адрес")
+            headers = ["ИД", "Название", "Страна", "Регион", "Город", "Адрес"]
+        case "Заказы":
+            result = show_orders()
+            headers = ["Магазин", "Адрес", "Сотрудник", "Марка", "Авто", "Покупатель", "Итоговая цена"]
     logger.info("Printing to %s: %s", update.message.from_user.first_name, result)
-    if type(result) == list:
-        for x in result:
-            await update.message.reply_text(x)
-    else:
-        await update.message.reply_text(result)
+    result = tabulate(result, headers=headers)
+    await update.message.reply_text(f'<pre>{result}</pre>', parse_mode=ParseMode.HTML)
     return ConversationHandler.END
 
 def show_buyers():
