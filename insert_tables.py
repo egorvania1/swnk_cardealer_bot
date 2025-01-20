@@ -1,21 +1,94 @@
 import psycopg2
 from dbmanage import connectdb
 
-from telegram import Update, ReplyKeyboardRemove
-from telegram.ext import ContextTypes
+from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram.ext import ContextTypes, ConversationHandler
 import logging
 
 # Все для выбора вывода, ввода, удаления и изменения
-WORKERS, CARS, SHOPS, ORDERS, CHOICE = range(5)
+WORKERS, JOBS, CARS, SHOPS, DEALERS, ORDERS, BUYERS, CHOICE = range(8)
 
 logger = logging.getLogger(__name__)
+
+async def insert(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    reply_keyboard = [["Покупатели", "Сотрудники", "Должности", "Автомобили", "Автосалоны", "Поставщики", "Заказы"]]
+    await update.message.reply_text(
+        "В какую таблицу вы хотите добавить данные?\n"
+        "/cancel для отмены",
+        reply_markup=ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True, input_field_placeholder="Выбор"
+        ),
+    )
+    return CHOICE
+    
+async def selected_insert(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    logger.info("Selected insert: %s", update.message.text)
+    result = "Ошибка"
+    match update.message.text:
+        case "Покупатели":
+            #result = show_buyers()
+            await update.message.reply_text("Введите: ФИО, Телефон")
+            return BUYERS
+        case "Сотрудники":
+            #result = show_workers()
+            await update.message.reply_text("Введите: ФИО, Пропуски, Должность, Опыт")
+            return WORKERS
+        case "Автомобили":
+            #result = show_cars()
+            await update.message.reply_text("Введите: VIN, Марка, Название, Год, Цвет, Покраска, Кузов, Цена")
+            return CARS
+        case "Автосалоны":
+            #result = show_shops()
+            await update.message.reply_text("Введите: Название, Улица, Город, Рейтинг")
+            return SHOPS
+        case "Заказы":
+            #result = show_orders()
+            await update.message.reply_text("Введите: ИД магазина, ИД сотрудника, VIN, ИД покупателя, ИД поставщика, Адрес доставки, Итоговая цена")
+            return ORDERS
+        case "Должности":
+            #result = show_jobs()
+            await update.message.reply_text("Введите: Должность, Опыт, Зарплата")
+            return JOBS
+        case "Поставщики":
+            #result = show_dealers()
+            await update.message.reply_text("Введите: Название, Страна, Регион, Город, Адрес")
+            return DEALERS
+    logger.info("Printing to %s: %s", update.message.from_user.first_name, result)
+    if type(result) == list:
+        for x in result:
+            await update.message.reply_text(x)
+    else:
+        await update.message.reply_text(result, reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
+
+async def insert_buyers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    conn = connectdb()
+    text = update.message.text
+    try:
+        fio, phone, = text.split(", ")
+        logger.info("Got from user: %s, %s, ", fio, phone)
+    except Exception as error:
+        logger.info(error)
+        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        return BUYERS
+    with conn.cursor() as cur:
+        try:
+            cur.execute("INSERT INTO buyers VALUES (DEFAULT, %s, %s)", (fio, phone))
+        except psycopg2.errors.ForeignKeyViolation as e:
+            logger.info(error)
+        except psycopg2.errors.UniqueViolation as e:
+            logger.info(error)
+        conn.commit()
+    conn.close()
+    await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
 
 async def insert_workers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     conn = connectdb()
     text = update.message.text
     try:
-        fio, skips, position, experience, pay = text.split(", ")
-        logger.info("Got from user: %s, %s, %s, %s, %s", fio, position, experience, skips, pay)
+        fio, skips, position, experience = text.split(", ")
+        logger.info("Got from user: %s, %s, %s, %s", fio, position, experience, skips)
     except Exception as error:
         logger.info(error)
         await update.message.reply_text("Неправильный ввод! попробуйте снова")
@@ -24,9 +97,31 @@ async def insert_workers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         try:
             cur.execute("INSERT INTO workers VALUES (DEFAULT, %s, %s, %s, %s)", (fio, position, int(experience), int(skips)))
         except psycopg2.errors.ForeignKeyViolation as e:
-            cur.execute("ROLLBACK", (position, int(experience), int(pay)))
-            cur.execute("INSERT INTO positions VALUES (%s, %s, %s)", (position, int(experience), int(pay)))
-            cur.execute("INSERT INTO workers VALUES (DEFAULT, %s, %s, %s, %s)", (fio, position, int(experience), int(skips)))
+            logger.info(e)
+        except psycopg2.errors.UniqueViolation as e:
+            logger.info(e)
+        conn.commit()
+    conn.close()
+    await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
+
+async def insert_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    conn = connectdb()
+    text = update.message.text
+    try:
+        position, experience, pay = text.split(", ")
+        logger.info("Got from user: %s, %s, %s", position, experience, pay)
+    except Exception as error:
+        logger.info(error)
+        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        return JOBS
+    with conn.cursor() as cur:
+        try:
+            cur.execute("INSERT INTO positions VALUES (DEFAULT, %s, %s, %s)", (position, int(experience), int(skips)))
+        except psycopg2.errors.ForeignKeyViolation as e:
+            logger.info(e)
+        except psycopg2.errors.UniqueViolation as e:
+            logger.info(e)
         conn.commit()
     conn.close()
     await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
@@ -41,12 +136,14 @@ async def insert_cars(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     except Exception as error:
         logger.info(error)
         await update.message.reply_text("Неправильный ввод! попробуйте снова")
-        return WORKERS
+        return CARS
     with conn.cursor() as cur:
         try:
             cur.execute("INSERT INTO cars VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (vin, brand, name, int(year), colour, colourType, body, int(price)))
         except psycopg2.errors.ForeignKeyViolation as e:
-            print(e)
+            logger.info(e)
+        except psycopg2.errors.UniqueViolation as e:
+            logger.info(e)
         conn.commit()
     conn.close()
     await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
@@ -61,12 +158,59 @@ async def insert_shops(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     except Exception as error:
         logger.info(error)
         await update.message.reply_text("Неправильный ввод! попробуйте снова")
-        return WORKERS
+        return SHOPS
     with conn.cursor() as cur:
         try:
             cur.execute("INSERT INTO shops VALUES (DEFAULT, %s, %s, %s, %s)", (name, address, city, rating))
         except psycopg2.errors.ForeignKeyViolation as e:
-            print(e)
+            logger.info(e)
+        except psycopg2.errors.UniqueViolation as e:
+            logger.info(e)
+        conn.commit()
+    conn.close()
+    await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
+
+async def insert_dealers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    conn = connectdb()
+    text = update.message.text
+    try:
+        name, country, region, city, address = text.split(", ")
+        logger.info("Got from user: %s, %s, %s, %s, %s", name, country, region, city, address)
+    except Exception as error:
+        logger.info(error)
+        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        return DEALERS
+    with conn.cursor() as cur:
+        try:
+            cur.execute("INSERT INTO shops VALUES (DEFAULT, %s, %s, %s, %s, %s)", (name, country, region, city, address))
+        except psycopg2.errors.ForeignKeyViolation as e:
+            logger.info(e)
+        except psycopg2.errors.UniqueViolation as e:
+            logger.info(e)
+        conn.commit()
+    conn.close()
+    await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
+
+async def insert_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    conn = connectdb()
+    text = update.message.text
+    try:
+        shopId, workerId, vin, buyerId, dealerId, deliveryAddr, totalPrice = text.split(", ")
+        logger.info("Got from user: %s, %s, %s, %s, %s, %s, %s", shopId, workerId, vin, buyerId, deliveryAddr, dealerId, totalPrice)
+    except Exception as error:
+        logger.info(e)
+        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        return ORDERS
+    with conn.cursor() as cur:
+        try:
+            cur.execute("INSERT INTO total_prices VALUES (%s, %s, %s, %s, %s, %s)", (shopId, vin, buyerId, deliveryAddr, dealerId, totalPrice))
+            cur.execute("INSERT INTO keys_table VALUES (%s, %s, %s, %s, %s, %s)", (shopId, workerId, vin, buyerId, deliveryAddr, dealerId))
+        except psycopg2.errors.ForeignKeyViolation as e:
+            logger.info(e)
+        except psycopg2.errors.UniqueViolation as e:
+            logger.info(e)
         conn.commit()
     conn.close()
     await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
