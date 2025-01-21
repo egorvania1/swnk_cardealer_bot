@@ -17,8 +17,7 @@ from dbmanage import connectdb
 from show_tables import view, selected_view, show_workers, show_cars, show_shops, show_orders, show_jobs, show_dealers, show_buyers
 from insert_tables import insert, selected_insert, insert_workers, insert_cars, insert_shops, insert_orders, insert_jobs, insert_dealers, insert_buyers
 from remove_tables import remove, selected_remove, remove_workers, remove_cars, remove_shops, remove_orders, remove_jobs, remove_dealers, remove_buyers
-
-
+from update_tables import update, selected_update, update_workers, typing_update, update_cars, update_shops, update_orders, update_jobs, update_dealers, update_buyers
 
 load_dotenv() #Загрузить приватную инфу
 
@@ -32,7 +31,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Все для выбора вывода, ввода, удаления и изменения
-BUYERS, WORKERS, JOBS, CARS, SHOPS, DEALERS, ORDERS, CHOICE = range(8)
+BUYERS, WORKERS, JOBS, CARS, SHOPS, DEALERS, ORDERS, CHOICE, TYPING_UPDATE = range(9)
 
 # Define a few command handlers. These usually take the two arguments update and
 # context.
@@ -112,11 +111,27 @@ def main() -> None:
         fallbacks=[CommandHandler("cancel", cancel)],
     )
     
+    update_handler = ConversationHandler(
+        entry_points=[CommandHandler("update", update)],
+        states={
+            CHOICE: [MessageHandler(filters.Regex("^(Покупатели|Сотрудники|Должности|Автомобили|Автосалоны|Поставщики|Заказы)$"), selected_update)],
+            TYPING_UPDATE: [MessageHandler(filters.TEXT, typing_update)],
+            BUYERS: [MessageHandler(filters.TEXT, update_buyers)],
+            WORKERS: [MessageHandler(filters.TEXT, update_workers)],
+            JOBS: [MessageHandler(filters.TEXT, update_jobs)],
+            CARS: [MessageHandler(filters.TEXT, update_cars)],
+            SHOPS: [MessageHandler(filters.TEXT, update_shops)],
+            ORDERS: [MessageHandler(filters.TEXT, update_orders)],
+            DEALERS: [MessageHandler(filters.TEXT, update_dealers)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
     
     # Conversation handlers
     application.add_handler(view_handler)
     application.add_handler(insert_handler)
     application.add_handler(remove_handler)
+    application.add_handler(update_handler)
     
     # Start command
     application.add_handler(CommandHandler("start", start))
