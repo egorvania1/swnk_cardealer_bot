@@ -88,7 +88,7 @@ async def remove_buyers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         logger.info("Got from user: %s ", inputId)
     except Exception as error:
         logger.info(error)
-        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
         return BUYERS
     conn = connectdb()
     with conn.cursor() as cur:
@@ -104,7 +104,7 @@ async def remove_workers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         logger.info("Got from user: %s ", inputId)
     except Exception as error:
         logger.info(error)
-        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
         return WORKERS
     conn = connectdb()
     with conn.cursor() as cur:
@@ -122,7 +122,7 @@ async def remove_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         position = int(position)
     except Exception as error:
         logger.info(error)
-        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
         return JOBS
     conn = connectdb()
     with conn.cursor() as cur:
@@ -138,7 +138,7 @@ async def remove_cars(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         logger.info("Got from user: %s ", inputId)
     except Exception as error:
         logger.info(error)
-        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
         return CARS
     conn = connectdb()
     with conn.cursor() as cur:
@@ -154,7 +154,7 @@ async def remove_shops(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         logger.info("Got from user: %s ", inputId)
     except Exception as error:
         logger.info(error)
-        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
         return SHOPS
     conn = connectdb()
     with conn.cursor() as cur:
@@ -170,7 +170,7 @@ async def remove_dealers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         logger.info("Got from user: %s ", inputId)
     except Exception as error:
         logger.info(error)
-        await update.message.reply_text("Неправильный ввод! попробуйте снова")
+        await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
         return SHOPS
     conn = connectdb()
     with conn.cursor() as cur:

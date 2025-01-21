@@ -10,7 +10,7 @@ from tabulate import tabulate
 from dbmanage import connectdb
 
 # Все для выбора вывода, ввода, удаления и изменения
-BUYERS, WORKERS, JOBS, CARS, SHOPS, DEALERS, ORDERS, CHOICE = range(8)
+BUYERS, WORKERS, JOBS, CARS, SHOPS, DEALERS, ORDERS, CHOICE, TYPING_UPDATE = range(9)
 
 logger = logging.getLogger(__name__)
 
