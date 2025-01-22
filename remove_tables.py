@@ -15,7 +15,7 @@ BUYERS, WORKERS, JOBS, CARS, SHOPS, DEALERS, ORDERS, CHOICE = range(8)
 
 logger = logging.getLogger(__name__)
 
-from show_tables import show_workers, show_cars, show_shops, show_orders, show_jobs, show_dealers, show_buyers
+from show_tables import show_workers, show_cars, show_shops, show_orders_id, show_jobs, show_dealers, show_buyers
 
 async def remove(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     reply_keyboard = [["Покупатели", "Сотрудники", "Должности", "Автомобили", "Автосалоны", "Поставщики", "Заказы"]]
@@ -54,8 +54,8 @@ async def selected_remove(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             result = show_dealers()
             headers = ["ИД", "Название", "Страна", "Регион", "Город", "Адрес"]
         case "Заказы":
-            result = show_orders()
-            headers = ["Магазин", "Адрес", "Сотрудник", "Марка", "Авто", "Покупатель", "Итоговая цена"]
+            result = show_orders_id()
+            headers = ["ИД магазина", "ИД сотрудника", "VIN", "Авто", "ИД покупателя", "Адрес доставки", "Итоговая цена"]
     result = tabulate(result, headers=headers)
     await update.message.reply_text(f'<pre>{result}</pre>', parse_mode=ParseMode.HTML)
     match text:
@@ -66,7 +66,7 @@ async def selected_remove(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await update.message.reply_text("Введите ИД сотрудника: ")
             return WORKERS
         case "Должности":
-            await update.message.reply_text("Введите ИД должности: ")
+            await update.message.reply_text("Введите Должность, Опыт: ")
             return JOBS
         case "Автомобили":
             await update.message.reply_text("Введите VIN: ")
@@ -78,7 +78,7 @@ async def selected_remove(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await update.message.reply_text("Введите ИД поставщика: ")
             return DEALERS
         case "Заказы":
-            await update.message.reply_text("Введите что-нибудь: ")
+            await update.message.reply_text("Введите: ИД магазина, ИД сотрудника, VIN, ИД покупателя, ИД поставщика, Адрес доставки")
             return ORDERS
     return ConversationHandler.END
 
@@ -118,15 +118,15 @@ async def remove_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     text = update.message.text
     try:
         position, experience = text.split(", ")
-        logger.info("Got from user: %s ", inputId)
-        position = int(position)
+        logger.info("Got from user: %s ", (position, experience))
+        experience = int(experience)
     except Exception as error:
         logger.info(error)
         await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
         return JOBS
     conn = connectdb()
     with conn.cursor() as cur:
-        cur.execute("DELETE FROM jobs WHERE position = (%s) AND experience = (%s)", (position, experience))
+        cur.execute("DELETE FROM positions WHERE position = (%s) AND experience = (%s)", (position, experience))
         conn.commit()
     conn.close()
     await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
@@ -181,5 +181,20 @@ async def remove_dealers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     return ConversationHandler.END
 
 async def remove_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("Класс, а теперь надо доделать это.")
+    text = update.message.text
+    try:
+        shopId, workerId, vin, buyerId, dealerId, deliveryAddr = text.split(", ")
+        logger.info("Got from user: %s", (shopId, workerId, vin, buyerId, dealerId, deliveryAddr))
+        shopId, workerId, vin, buyerId, dealerId = int(shopId), (workerId), int(vin), int(buyerId), int(dealerId)
+    except Exception as error:
+        logger.info(error)
+        await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
+        return ORDERS
+    conn = connectdb()
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM total_prices WHERE shopId = (%s) AND vin = (%s) AND buyerId = (%s) AND deliveryAddr = (%s) AND dealerId = (%s)", (shopId, vin, buyerId, deliveryAddr, dealerId))
+        cur.execute("DELETE FROM keys_table WHERE shopId = (%s) AND workerId = (%s) AND vin = (%s) AND buyerId = (%s) AND deliveryAddr = (%s) AND dealerId = (%s) ", (shopId, workerId, vin, buyerId, deliveryAddr, dealerId))
+        conn.commit()
+    conn.close()
+    await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END

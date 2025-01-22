@@ -81,8 +81,8 @@ async def insert_workers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     with conn.cursor() as cur:
         try:
             cur.execute("INSERT INTO workers VALUES (DEFAULT, %s, %s, %s, %s)", (fio, position, experience, skips))
-        except psycopg2.es.ForeignKeyViolation as e:
-            await update.message.reply_text("Неизвестная профессия! Таблица не изменена.")
+        except psycopg2.errors.ForeignKeyViolation as e:
+            await update.message.reply_text("Неизвестная должность! Таблица не изменена.")
         conn.commit()
     conn.close()
     await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
@@ -93,7 +93,7 @@ async def insert_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     try:
         position, experience, pay = text.split(", ")
         logger.info("Got from user: %s, %s, %s", position, experience, pay)
-        experience, skips = int(experience), int(skips)
+        experience, paY = int(experience), int(pay)
     except ValueError as e:
         logger.info(e)
         await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
@@ -101,9 +101,9 @@ async def insert_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     conn = connectdb()
     with conn.cursor() as cur:
         try:
-            cur.execute("INSERT INTO positions VALUES (DEFAULT, %s, %s, %s)", (position, experience, skips))
-        except psycopg2.es.UniqueViolation as e:
-            await update.message.reply_text("Такая профессия уже известна! Таблица не изменена.")
+            cur.execute("INSERT INTO positions VALUES (%s, %s, %s)", (position, experience, pay))
+        except psycopg2.errors.UniqueViolation as e:
+            await update.message.reply_text("Такая должность уже известна! Таблица не изменена.")
         conn.commit()
     conn.close()
     await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
@@ -113,7 +113,7 @@ async def insert_cars(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     text = update.message.text
     try:
         vin, brand, name, year, colour, colourType, body, price = text.split(", ")
-        logger.info("Got from user: %s, %s, %s, %s, %s", vin, brand, name, year, colour, colourType, body, price)
+        logger.info("Got from user: %s", (vin, brand, name, year, colour, colourType, body, price))
         vin, year, price = int(vin), int(year), int(price)
     except ValueError as e:
         logger.info(e)
@@ -123,7 +123,7 @@ async def insert_cars(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     with conn.cursor() as cur:
         try:
             cur.execute("INSERT INTO cars VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (vin, brand, name, year, colour, colourType, body, price))
-        except psycopg2.es.UniqueViolation as e:
+        except psycopg2.errors.UniqueViolation as e:
             await update.message.reply_text("Машина с таким VIN кодом уже известна! Таблица не изменена.")
         conn.commit()
     conn.close()
@@ -135,6 +135,7 @@ async def insert_shops(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     try:
         name, address, city, rating = text.split(", ")
         logger.info("Got from user: %s, %s, %s, %s", name, address, city, rating)
+        rating = int(rating)
     except ValueError as e:
         logger.info(e)
         await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
@@ -168,7 +169,7 @@ async def insert_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     text = update.message.text
     try:
         shopId, workerId, vin, buyerId, dealerId, deliveryAddr, totalPrice = text.split(", ")
-        logger.info("Got from user: %s, %s, %s, %s, %s, %s, %s", shopId, workerId, vin, buyerId, deliveryAddr, dealerId, totalPrice)
+        logger.info("Got from user: %s", shopId, workerId, vin, buyerId, deliveryAddr, dealerId, totalPrice)
         shopId, workerId, vin, buyerId, dealerId, totalPrice = int(shopId), int(workerId), int(vin), int(buyerId), int(dealerId), int(totalPrice)
     except ValueError as e:
         logger.info(e)
@@ -179,9 +180,9 @@ async def insert_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         try:
             cur.execute("INSERT INTO total_prices VALUES (%s, %s, %s, %s, %s, %s)", (shopId, vin, buyerId, deliveryAddr, dealerId, totalPrice))
             cur.execute("INSERT INTO keys_table VALUES (%s, %s, %s, %s, %s, %s)", (shopId, workerId, vin, buyerId, deliveryAddr, dealerId))
-        except psycopg2.es.ForeignKeyViolation as e:
+        except psycopg2.errors.ForeignKeyViolation as e:
             await update.message.reply_text("Неизвестный автосалон/сотрудник/авто/покупатель/поставщик. Таблица не изменена.")
-        except psycopg2.es.UniqueViolation as e:
+        except psycopg2.errors.UniqueViolation as e:
             await update.message.reply_text("Такой заказ уже известен! Таблица не изменена.")
         conn.commit()
     conn.close()

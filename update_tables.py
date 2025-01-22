@@ -15,7 +15,7 @@ BUYERS, WORKERS, JOBS, CARS, SHOPS, DEALERS, ORDERS, CHOICE, TYPING_UPDATE = ran
 
 logger = logging.getLogger(__name__)
 
-from show_tables import show_workers, show_cars, show_shops, show_orders, show_jobs, show_dealers, show_buyers
+from show_tables import show_workers, show_cars, show_shops, show_prices, show_jobs, show_dealers, show_buyers
 
 async def update(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     reply_keyboard = [["Покупатели", "Сотрудники", "Должности", "Автомобили", "Автосалоны", "Поставщики", "Заказы"]]
@@ -54,8 +54,8 @@ async def selected_update(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             result = show_dealers()
             headers = ["ИД", "Название", "Страна", "Регион", "Город", "Адрес"]
         case "Заказы":
-            result = show_orders()
-            headers = ["Магазин", "Адрес", "Сотрудник", "Марка", "Авто", "Покупатель", "Итоговая цена"]
+            result = show_prices()
+            headers = ["ИД магазина", "VIN", "ИД покупателя", "ИД поставщика", "Адрес доставки", "Итоговая цена"]
     result = tabulate(result, headers=headers)
     await update.message.reply_text(f'<pre>{result}</pre>', parse_mode=ParseMode.HTML)
     match text:
@@ -78,7 +78,7 @@ async def selected_update(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await update.message.reply_text("Введите ИД поставщика: ")
             return TYPING_UPDATE
         case "Заказы":
-            await update.message.reply_text("Введите что-нибудь: ")
+            await update.message.reply_text("Введите: ИД магазина, VIN, ИД покупателя, ИД поставщика, Адрес доставки")
             return TYPING_UPDATE
     return ConversationHandler.END
 
@@ -87,29 +87,67 @@ async def typing_update(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     table = context.user_data["table"]
     match table:
         case "Покупатели":
+            try:
+                context.user_data["inputId"] = int(context.user_data["inputId"])
+            except:
+                await update.message.reply_text("Введите число! Попробуйте снова")
+                return TYPING_UPDATE
             await update.message.reply_text("Введите: ФИО, Телефон")
             return BUYERS
         case "Сотрудники":
+            try:
+                context.user_data["inputId"] = int(context.user_data["inputId"])
+            except:
+                await update.message.reply_text("Введите число! Попробуйте снова")
+                return TYPING_UPDATE
             await update.message.reply_text("Введите: ФИО, Пропуски, Должность, Опыт")
             return WORKERS
         case "Автомобили":
+            try:
+                context.user_data["inputId"] = int(context.user_data["inputId"])
+            except:
+                await update.message.reply_text("Введите число! Попробуйте снова")
+                return TYPING_UPDATE
             await update.message.reply_text("Введите: Марка, Название, Год, Цвет, Покраска, Кузов, Цена")
             return CARS
         case "Автосалоны":
+            try:
+                context.user_data["inputId"] = int(context.user_data["inputId"])
+            except:
+                await update.message.reply_text("Введите число! Попробуйте снова")
+                return TYPING_UPDATE
             await update.message.reply_text("Введите: Название, Улица, Город, Рейтинг")
             return SHOPS
         case "Заказы":
-            await update.message.reply_text("Введите: ИД магазина, ИД сотрудника, VIN, ИД покупателя, ИД поставщика, Адрес доставки, Итоговая цена")
+            try:
+                context.user_data["inputId"] = context.user_data["inputId"].split(", ")
+                if len(context.user_data["inputId"]) != 5:
+                    await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
+                    return TYPING_UPDATE
+                for i in range(4):
+                    context.user_data["inputId"][i] = int(context.user_data["inputId"][i])
+            except:
+                await update.message.reply_text("Введите число! Попробуйте снова")
+                return TYPING_UPDATE
+            await update.message.reply_text("Введите: Итоговую цену")
             return ORDERS
         case "Должности":
             try:
                 context.user_data["inputId"] = context.user_data["inputId"].split(", ")
+                if len(context.user_data["inputId"]) != 2:
+                    await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
+                    return TYPING_UPDATE
             except:
                 await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
                 return TYPING_UPDATE
             await update.message.reply_text("Введите: Должность, Опыт, Зарплата")
             return JOBS
         case "Поставщики":
+            try:
+                context.user_data["inputId"] = int(context.user_data["inputId"])
+            except:
+                await update.message.reply_text("Введите число! Попробуйте снова")
+                return TYPING_UPDATE
             await update.message.reply_text("Введите: Название, Страна, Регион, Город, Адрес")
             return DEALERS
     return ConversationHandler.END
@@ -155,9 +193,7 @@ async def update_workers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         try:
             cur.execute("UPDATE workers SET FIO = (%s), position = (%s), experience = (%s), skips = (%s) WHERE workerId = (%s)", (fio, position, experience, skips, inputId))
         except psycopg2.errors.ForeignKeyViolation as e:
-            logger.info(e)
-        except psycopg2.errors.UniqueViolation as e:
-            logger.info(e)
+            await update.message.reply_text("Неизвестная должность! Таблица не изменена.")
         conn.commit()
     conn.close()
     del context.user_data["inputId"]
@@ -171,7 +207,7 @@ async def update_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     try:
         position, experience, pay = text.split(", ")
         logger.info("Got from user: %s, %s, %s", position, experience, pay)
-        experience, skips = int(experience), int(skips)
+        experience, pay = int(experience), int(pay)
     except Exception as error:
         logger.info(error)
         await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
@@ -179,11 +215,9 @@ async def update_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     conn = connectdb()
     with conn.cursor() as cur:
         try:
-            cur.execute("UPDATE positions SET position = (%s), experience = (%s), pay = (%s) WHERE position = (%s) and experience = (%s)", (position, experience, skips, inputId[0], inputId[1]))
-        except psycopg2.errors.ForeignKeyViolation as e:
-            logger.info(e)
+            cur.execute("UPDATE positions SET position = (%s), experience = (%s), pay = (%s) WHERE position = (%s) and experience = (%s)", (position, experience, pay, inputId[0], inputId[1]))
         except psycopg2.errors.UniqueViolation as e:
-            logger.info(e)
+            await update.message.reply_text("Такая должность уже известна! Таблица не изменена.")
         conn.commit()
     conn.close()
     del context.user_data["inputId"]
@@ -196,8 +230,8 @@ async def update_cars(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     inputId = context.user_data["inputId"]
     try:
         brand, name, year, colour, colourType, body, price = text.split(", ")
-        logger.info("Got from user: %s, %s, %s, %s, %s", vin, brand, name, year, colour, colourType, body, price)
-        vin, year, price = int(vin), int(year), int(price)
+        logger.info("Got from user: %s", (brand, name, year, colour, colourType, body, price))
+        year, price = int(year), int(price)
     except Exception as error:
         logger.info(error)
         await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
@@ -205,11 +239,9 @@ async def update_cars(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     conn = connectdb()
     with conn.cursor() as cur:
         try:
-            cur.execute("UPDATE cars SET brand = (%s), name = (%s), year = (%s), colour = (%s), colourType = (%s), body = (%s), price = (%s) WHERE vin = (%S)", (brand, name, year, colour, colourType, body, price, inputId))
-        except psycopg2.errors.ForeignKeyViolation as e:
-            logger.info(e)
+            cur.execute("UPDATE cars SET brand = (%s), name = (%s), year = (%s), colour = (%s), colourType = (%s), body = (%s), price = (%s) WHERE vin = (%s)", (brand, name, year, colour, colourType, body, price, inputId))
         except psycopg2.errors.UniqueViolation as e:
-            logger.info(e)
+            await update.message.reply_text("Машина с таким VIN кодом уже известна! Таблица не изменена.")
         conn.commit()
     conn.close()
     del context.user_data["inputId"]
@@ -268,7 +300,27 @@ async def update_dealers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     return ConversationHandler.END
 
 async def update_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    totalPrice = update.message.text
+    inputId = context.user_data["inputId"]
+    logger.info("Got from user: %s", totalPrice)
+    try:
+        shopId, vin, buyerId, dealerId, deliveryAddr = inputId[0], inputId[1], inputId[2], inputId[3], inputId[4]
+        totalPrice = int(totalPrice)
+    except Exception as error:
+        logger.info(error)
+        await update.message.reply_text("Ошибка ввода данных! Попробуйте снова")
+        return ORDERS
+    conn = connectdb()
+    with conn.cursor() as cur:
+        try:
+            cur.execute("UPDATE total_prices SET totalPrice = (%s) WHERE shopId = (%s) AND vin = (%s) AND buyerId = (%s) AND deliveryAddr = (%s) AND dealerId = (%s)", (totalPrice, shopId, vin, buyerId, deliveryAddr, dealerId))
+        except psycopg2.errors.ForeignKeyViolation as e:
+            await update.message.reply_text("Неизвестный автосалон/сотрудник/авто/покупатель/поставщик. Таблица не изменена.")
+        except psycopg2.errors.UniqueViolation as e:
+            await update.message.reply_text("Такой заказ уже известен! Таблица не изменена.")
+    conn.commit()
+    conn.close()
     del context.user_data["inputId"]
     del context.user_data["table"]
-    await update.message.reply_text("Класс, а теперь надо доделать это.")
+    await update.message.reply_text("Готово!", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END

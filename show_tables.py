@@ -50,7 +50,7 @@ async def selected_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             headers = ["ИД", "Название", "Страна", "Регион", "Город", "Адрес"]
         case "Заказы":
             result = show_orders()
-            headers = ["Магазин", "Адрес", "Сотрудник", "Марка", "Авто", "Покупатель", "Итоговая цена"]
+            headers = ["Магазин", "Адрес", "Сотрудник", "Марка", "Авто", "Поставщик", "Покупатель", "Адрес доставки", "Итоговая цена"]
     logger.info("Printing to %s: %s", update.message.from_user.first_name, result)
     result = tabulate(result, headers=headers)
     await update.message.reply_text(f'<pre>{result}</pre>', parse_mode=ParseMode.HTML)
@@ -83,7 +83,7 @@ def show_jobs():
     with conn.cursor() as cur:
         cur.execute('''SELECT *
         FROM positions
-        ORDER BY position;''')
+        ORDER BY position, experience DESC;''')
         result = cur.fetchall()
     conn.close()
     return result
@@ -115,7 +115,7 @@ def show_dealers():
 def show_orders():
     conn = connectdb()
     with conn.cursor() as cur:
-        cur.execute('''SELECT s.name, s.address, w.FIO, c.brand, c.name, b.FIO, tp.totalPrice
+        cur.execute('''SELECT s.name, s.address, w.FIO, c.brand, c.name, d.name, b.FIO, tp.deliveryAddr, tp.totalPrice
         FROM keys_table AS kt
         CROSS JOIN total_prices AS tp
         INNER JOIN shops s ON kt.shopId = s.shopId AND tp.shopId = kt.shopId
@@ -123,6 +123,32 @@ def show_orders():
         INNER JOIN cars c ON kt.vin = c.vin AND tp.vin = c.vin
         INNER JOIN buyers b ON kt.buyerId = b.buyerId AND tp.buyerId = b.buyerId
         INNER JOIN dealers d ON kt.dealerId = d.dealerId AND tp.dealerId = d.dealerId
+        ;''')
+        result = cur.fetchall()
+    conn.close()
+    return result
+
+def show_orders_id():
+    conn = connectdb()
+    with conn.cursor() as cur:
+        cur.execute('''SELECT s.shopId, w.workerId, c.vin, b.buyerId, d.dealerId, tp.deliveryAddr, tp.totalPrice
+        FROM keys_table AS kt
+        CROSS JOIN total_prices AS tp
+        INNER JOIN shops s ON kt.shopId = s.shopId AND tp.shopId = kt.shopId
+        INNER JOIN workers w ON kt.workerId = w.workerId
+        INNER JOIN cars c ON kt.vin = c.vin AND tp.vin = c.vin
+        INNER JOIN buyers b ON kt.buyerId = b.buyerId AND tp.buyerId = b.buyerId
+        INNER JOIN dealers d ON kt.dealerId = d.dealerId AND tp.dealerId = d.dealerId
+        ;''')
+        result = cur.fetchall()
+    conn.close()
+    return result
+
+def show_prices():
+    conn = connectdb()
+    with conn.cursor() as cur:
+        cur.execute('''SELECT shopId, VIN, buyerId, dealerId, deliveryAddr, totalPrice
+        FROM total_prices
         ;''')
         result = cur.fetchall()
     conn.close()
